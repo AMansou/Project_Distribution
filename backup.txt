@@ -1,0 +1,171 @@
+import numpy as np
+import xlrd
+from tkinter import filedialog as fd
+
+
+num_of_projects=37 #Number of projects
+initPopSize=8 #initial population size
+mutation_chance=100#percent
+choices=[]
+first_row=[]
+a=[]
+###### read the .xls file and store all of the groups choices#######
+book = xlrd.open_workbook("f.xls")
+sh = book.sheet_by_index(0)
+for rx in range(1,sh.nrows):
+    for cx in range(2,sh.ncols):
+      a.append(sh.cell_value(rx,cx))
+    choices.append(a)
+    a=[]
+
+num_of_groups=len(choices)
+maxScore=num_of_groups*3 #If every group got their first choice, this would be their score.
+
+
+
+#create solution starting at a random position in the student groups' list iterate through the list, assigning the first choice of each group to
+#it. If not available, assign second and then third choice. if all are taken, randomly assign a projet that hasn't been assigned yet
+def initSample(choices,shift):
+    arr=np.zeros(num_of_groups)
+
+    for i in range(shift,len(choices)):
+        if choices[i][0] not in arr:
+            arr[i]=choices[i][0]
+
+        elif choices[i][1] not in arr:
+            arr[i]=choices[i][1]
+
+        elif choices[i][2] not in arr:
+            arr[i]=choices[i][2]
+
+        else:
+
+            while True:
+                randy=np.random.randint(num_of_projects)
+                if randy not in arr:
+                    arr[i]=randy
+                    break
+    for i in range(shift): #again to iterate through the elements that come before the position of the shift
+        if choices[i][0] not in arr:
+            arr[i]=choices[i][0]
+
+        elif choices[i][1] not in arr:
+            arr[i]=choices[i][1]
+
+        elif choices[i][2] not in arr:
+            arr[i]=choices[i][2]
+
+        else:
+
+            while True:
+                randy=np.random.randint(num_of_projects)+1
+                if randy not in arr:
+                    arr[i]=randy
+                    break
+    return arr
+def fitness(choices,arr): #self-explanatory
+    score=0
+    for i in range(num_of_groups):
+        if arr[i]==choices[i][0]:
+           score+=3
+        elif arr[i]==choices[i][1]:
+            score+=2
+        elif arr[i]==choices[i][2]:
+           score+=1
+    return score
+def random_selection(choices,population): ### this function should return a random solution, with the more fit solutions having a higher chance of being selected
+    ###Generate a random number for every solution in the population and multiply it by the fitness function of that solution
+    ###Compare the resulting number to every other solution in population and select the greatest one
+    maxx=0
+    a=[]
+    for i in population:
+        randy=np.random.randint(100)/100
+        if fitness(choices,i) * randy > maxx:
+            maxx=fitness(choices,i) * randy
+            a=i
+    return a
+def mutate(z): ### given a solution z, select two random groups and swap their projects.
+    #if np.random.randint(100)<10:
+    randy1=np.random.randint(num_of_groups-1)
+    randy2=np.random.randint(num_of_groups-1)
+    temp=z[randy1]
+    z[randy1]=z[randy2]
+    z[randy2]=temp
+    return z
+
+def reproduce(x,y): #randomly mix different portions of different solutions together
+                    #When projects collide, assign a different project to group using the same method used in initSample()
+    randy=np.random.randint(len(x))
+    child= np.concatenate([x[0:randy],y[randy:]])
+    x=x[0:randy]
+    for i in range(randy,len(child)):
+        if child[i]  in x:
+            if choices[i][0] not in child:
+                child[i]=choices[i][0]
+
+            elif choices[i][1] not in child:
+                child[i]=choices[i][1]
+
+            elif choices[i][2] not in child:
+                child[i]=choices[i][2]
+
+            else:
+
+                while True:
+                    randy=np.random.randint(num_of_projects)+1
+                    if randy not in child:
+                        child[i]=randy
+                        break
+    return child
+
+
+while True:
+    cnt=0
+    ###Initilize a population with the size that is predefined (initial population size)
+    population=np.zeros((initPopSize,num_of_groups))
+    while cnt<initPopSize:
+        a=initSample(choices,np.random.randint(num_of_groups))
+       # print(a in population)
+        if True:
+            population[cnt]=a
+            cnt+=1
+            #print(a)
+
+
+    for i in range(4): ### Iterate six times () it takes exponentially more time to execute whenever you increase this number
+        # Just follow the genetic algorithm in the book
+        new_pop=np.zeros((len(population),num_of_groups))
+        for j in range(len(population)):
+            x=random_selection(choices,population)
+            y=random_selection(choices,population)
+            child=reproduce(x,y)
+            if np.random.randint(100)<10: ####small random chance of mutation
+                child=mutate(child)
+            new_pop[j]=child
+            #print(new_pop)
+        population=np.append(population,new_pop,axis=0)
+        #print(i,j)
+
+
+    maxx=0
+    a=[]
+    for i in population:### find the fittest solution in the population and print it
+        if fitness(choices,i) > maxx:
+            maxx=fitness(choices,i)
+            a=i
+    print(maxx)
+    print(a)
+
+    if maxx>=70: ###If solution is fit enough, break the loop
+        break
+print("The best distribution of projects is:")
+print(a)
+print("With a fitness score of: ")
+print(maxx)
+
+print(fitness(choices,[5,11,12,26,1,22,32,9,13,23,35,15,8,27,37,2,7,21,30,34,4,17,16,38,20,3,14,29,25,24,6,10,28,19,18,36]))
+print(len(a))
+
+
+
+
